@@ -6,6 +6,12 @@ A mini web demo using **Streamlit** is included for easy experimentation.
 
 ---
 
+## Demo
+![Demo](pic/demo.gif)
+
+
+---
+
 ## 🚀 Project Goals
 
 - Build a model to predict a player's rank from match statistics.
@@ -30,6 +36,7 @@ A mini web demo using **Streamlit** is included for easy experimentation.
 > The confusion matrix shows that the model performs well for lower (**iron**, **bronze**) and higher (**immortal**) ranks but struggles with middle tiers such as **silver → platinum**.  
 > This reflects real gameplay, where mid ranks vary due to **inconsistency in performance or team composition**.  
 > Despite the challenge, the model achieves **average recall around 50%** with a solid **R² ≈ 0.76**, indicating decent overall predictive power.
+![ConfusionMatrix](pic/Confusion_Matrix.png)
 
 ---
 
@@ -42,6 +49,8 @@ valorant_rank_predictor/
 │   └── rf_model.pkl       # Trained model file
 ├── data/
 │   └── valorant_dataset.csv  # (optional) source data
+├── pic/
+│   └──Confusion_Matrix.png
 ├── requirements.txt       # Required libraries
 └── README.md              # Project description
 ```
@@ -89,5 +98,5 @@ streamlit run app.py
 
 ## 👨‍💻 Author
 
-- Name: [Your Name]
-- Contact: [Email / GitHub / LinkedIn]
+- Name: Pea
+- Contact: nnphuc2201@gmail.com
