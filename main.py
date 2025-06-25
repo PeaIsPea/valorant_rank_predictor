@@ -3,13 +3,13 @@ import numpy as np
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import train_test_split, GridSearchCV
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import classification_report
+from sklearn.metrics import classification_report, confusion_matrix
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.metrics import confusion_matrix
 import joblib
+from imblearn.over_sampling import SMOTE
 
 # ===== 1. Load và xử lý dữ liệu gốc =====
 data = pd.read_csv("data/valorant_dataset.csv")
@@ -17,10 +17,15 @@ target = "rank"
 x = data.drop(target, axis=1)
 y_raw = data[target]
 
+
+
+
 # Chuyển rank thành số thứ tự (ordinal)
 rank_order = ['iron', 'bronze', 'silver', 'gold', 'platinum', 'diamond', 'ascendant', 'immortal']
 rank_map = {r: i for i, r in enumerate(rank_order)}
 y = y_raw.map(rank_map)
+
+
 
 # Fix các cột số bị lưu thành chuỗi
 cols_to_fix = ['assists', 'damage_received']
@@ -28,19 +33,31 @@ for col in cols_to_fix:
     x[col] = x[col].str.replace(',', '', regex=False)
     x[col] = pd.to_numeric(x[col])
 
-# ===== 2. Feature Engineering =====
-x['kda_ratio'] = (x['kills'] + x['assists']) / (x['deaths'] + 1e-5)
-x['hs_rate'] = x['headshots'] / (x['kills'] + 1e-5)
-x['dmg_per_match'] = x['damage'] / (x['matches'] + 1e-5)
-x['dmg_taken_per_death'] = x['damage_received'] / (x['deaths'] + 1e-5)
-x['survival_rate'] = 1 - x['deaths'] / (x['matches'] + 1e-5)
-x['avg_assists'] = x['assists'] / (x['matches'] + 1e-5)
-x['avg_traded'] = x['traded'] / (x['kills'] + 1e-5)
 
-# ===== 3. Chia tập train/test =====
+# ===== 2. Chia tập train/test =====
 x_train, x_test, y_train, y_test = train_test_split(
     x, y, test_size=0.2, random_state=42, stratify=y
 )
+
+
+# ===== 3. Dùng SMOTE để over-sample tập train =====
+smote = SMOTE(random_state=42, sampling_strategy={
+    0: 300,  # iron
+    1: 300,  # bronze
+    2: 300,  # silver
+    3: 300,  # gold
+    4: 300,  # platinum
+    5: 400,  # diamond
+
+})
+print(y_train.value_counts())
+x_train, y_train= smote.fit_resample(x_train, y_train)
+print("-------------------------")
+print(y_train.value_counts())
+
+
+
+
 
 # ===== 4. Pipeline tiền xử lý =====
 num_transformer = Pipeline([
@@ -51,51 +68,54 @@ preprocessor = ColumnTransformer([
     ("num", num_transformer, x.columns.tolist())
 ])
 
-# ===== 5. Pipeline mô hình RandomForestRegressor =====
-regressor = Pipeline([
+# ===== 5. Pipeline mô hình RandomForestClassifier =====
+classifier = Pipeline([
     ("preprocessor", preprocessor),
-    ("model", RandomForestRegressor(random_state=42))
+    ("model", RandomForestClassifier(random_state=42))
 ])
 
 # ===== 6. GridSearch để tìm tham số tốt nhất =====
 param_grid = {
+
     "model__n_estimators": [100, 200, 300],
-    "model__max_depth": [6, 10, 20]
+    "model__max_depth": [6, 10, 20],
+    "model__class_weight": [None, "balanced"]
 }
 
 grid_search = GridSearchCV(
-    regressor,
+    classifier,
     param_grid=param_grid,
     cv=4,
-    scoring='r2',
+    scoring='f1_macro',
     verbose=2,
     n_jobs=-1
 )
 
 grid_search.fit(x_train, y_train)
 
-# ===== 7. Dự đoán & làm tròn thành rank =====
-y_pred_float = grid_search.predict(x_test)
-y_pred_class = np.round(y_pred_float).astype(int).clip(0, len(rank_order) - 1)
+# ===== 7. Dự đoán =====
+y_pred = grid_search.predict(x_test)
 
 # ===== 8. Đánh giá kết quả phân loại =====
-print("Best R2 score:", grid_search.best_score_)
+print("Best F1 score:", grid_search.best_score_)
 print("Best params:", grid_search.best_params_)
-print(classification_report(y_test, y_pred_class, target_names=rank_order))
+print(classification_report(y_test, y_pred, target_names=rank_order))
 
+# ===== 9. Lưu mô hình đã huấn luyện =====
+joblib.dump(grid_search.best_estimator_, "model/rf_classifier.pkl")
 
-# Lưu mô hình sau khi train
-joblib.dump(grid_search.best_estimator_, "model/rf_model.pkl")
-
-# Tạo confusion matrix
-cm = confusion_matrix(y_test, y_pred_class)
-# Vẽ bằng seaborn
+# ===== 10. Vẽ confusion matrix =====
+cm = confusion_matrix(y_test, y_pred)
 plt.figure(figsize=(10, 8))
 sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", xticklabels=rank_order, yticklabels=rank_order)
-
-# Nhãn trục
 plt.xlabel("Predicted Rank")
 plt.ylabel("True Rank")
-plt.title("Confusion Matrix for Valorant Rank Prediction")
+plt.title("Confusion Matrix with SMOTE + RandomForestClassifier")
 plt.tight_layout()
 plt.show()
+
+
+
+# accuracy                           0.56       539
+# macro avg       0.59      0.58      0.58       539
+# weighted avg       0.58      0.56      0.57       539

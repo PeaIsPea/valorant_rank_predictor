@@ -1,41 +1,48 @@
 # 🎯 Valorant Rank Predictor
 
-This project uses a machine learning model to **predict the rank of a Valorant player** based on their in-game statistics such as kills, deaths, assists, headshots, damage, etc.
+This project uses a machine learning model to **classify a Valorant player's rank** based on in-game statistics such as kills, deaths, assists, headshots, damage received, etc.
 
 A mini web demo using **Streamlit** is included for easy experimentation.
 
 ---
 
-## Demo
+## 🖥️ Demo
 ![Demo](pic/demo.gif)
-
 
 ---
 
 ## 🚀 Project Goals
 
-- Build a model to predict a player's rank from match statistics.
-- Explore the correlation between individual performance and rank.
+- Build a model to classify a player's rank from match statistics.
+- Explore the relationship between individual performance and rank.
 - Practice a full ML pipeline: preprocessing → training → evaluation → web deployment.
 
 ---
 
 ## 🧠 Model Used
 
-- `RandomForestRegressor` (regression) with post-processing `.round()` to convert predictions into discrete rank classes.
-- Feature engineering includes:
-  - KDA ratio
-  - Headshot rate
-  - Damage per match
-  - Survival rate, etc.
+- `RandomForestClassifier` from `sklearn`.
+- **SMOTE** technique applied to balance the training dataset.
+- Hyperparameter tuning using `GridSearchCV`.
+
+Key engineered features include:
+- KDA ratio
+- Headshot rate
+- Damage dealt/received
+- Survival rate, etc.
 
 ---
 
-## 📊 Result Insights
+## 📊 Results & Insights
 
-> The confusion matrix shows that the model performs well for lower (**iron**, **bronze**) and higher (**immortal**) ranks but struggles with middle tiers such as **silver → platinum**.  
-> This reflects real gameplay, where mid ranks vary due to **inconsistency in performance or team composition**.  
-> Despite the challenge, the model achieves **average recall around 50%** with a solid **R² ≈ 0.76**, indicating decent overall predictive power.
+> The model performs well on low (**iron**, **bronze**) and high (**immortal**) ranks, but struggles with mid-tier (**silver → platinum**) classifications.  
+> This reflects real gameplay, where middle ranks often vary due to inconsistent performance or team impact.
+
+- **Average F1 Macro Score: ~0.58**
+- **Accuracy: ~56%**
+- **R² is not used as this is a classification task**
+- Dataset was balanced using `SMOTE` to improve fairness and performance.
+
 ![ConfusionMatrix](pic/Confusion_Matrix.png)
 
 ---
@@ -46,12 +53,13 @@ A mini web demo using **Streamlit** is included for easy experimentation.
 valorant_rank_predictor/
 ├── app.py                 # Streamlit web interface
 ├── model/
-│   └── rf_model.pkl       # Trained model file
+│   └── rf_classifier.pkl  # Trained RandomForest model
 ├── data/
-│   └── valorant_dataset.csv  # (optional) source data
+│   └── valorant_dataset.csv  # Input dataset
 ├── pic/
-│   └──Confusion_Matrix.png
-├── requirements.txt       # Required libraries
+│   └── Confusion_Matrix.png  # Confusion matrix image
+│   └── demo.gif
+├── requirements.txt       # Required Python libraries
 └── README.md              # Project description
 ```
 
@@ -71,28 +79,30 @@ streamlit run app.py
 
 ---
 
-## 🛠️ Techniques Applied
+## ⚙️ Techniques Applied
 
-- Data cleaning: numeric conversion, normalization
-- Feature engineering: statistical ratios and per-match metrics
-- GridSearchCV: hyperparameter tuning for RandomForest
-- Confusion matrix: evaluation by rank class
-- Streamlit: rapid web demo deployment
+- Data cleaning: fixing incorrect numeric formatting (e.g., "1,200" → "1200")
+- Data normalization using `StandardScaler`
+- Dataset balancing with `SMOTE`
+- Model training using `RandomForestClassifier`
+- Hyperparameter tuning via `GridSearchCV`
+- Evaluation using `confusion matrix` and `classification_report`
+- Visualization with `Seaborn`
 
 ---
 
 ## 📌 Notes
 
-- The dataset is not severely imbalanced but has slightly more samples in higher ranks.
-- Performance can be further improved by using more data or incorporating map/agent/team-based features.
+- The original dataset is slightly imbalanced towards higher ranks, but SMOTE was applied to fix this.
+- Performance can be further improved by adding map, agent, or time-series features.
 
 ---
 
 ## 💡 Future Ideas
 
 - Track rank progression over time
-- Predict win rate or MVP chance
-- Recommend optimal agent based on current stats
+- Predict MVP or win probability
+- Recommend optimal agents based on current stats
 
 ---
 
